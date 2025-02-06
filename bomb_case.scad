@@ -178,7 +178,7 @@ module outside_wall() {
     }
 }
 
-%back_plate();
-*vertical_wall();
-*horizontal_wall();
+back_plate();
+vertical_wall();
+horizontal_wall();
 outside_wall();
