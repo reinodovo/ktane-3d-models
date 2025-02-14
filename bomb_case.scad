@@ -1,23 +1,5 @@
 include <variables.scad>
 
-$fn = $preview ? 10 : 50;
-
-module_hole_tolerance = 1;
-back_plate_thickness = 4.5;
-screw_hole_offset = 25;
-
-wall_between_modules_thickness = 8; 
-wall_between_modules_corner_radius = 1;
-wall_between_modules_tolerance = 0.2;
-vertical_wall_height = 25;
-horizontal_wall_height = 22;
-
-gap = size + module_hole_tolerance + wall_between_modules_thickness;
-module_gap = size + module_hole_tolerance;
-
-back_plate_length = (size + module_hole_tolerance) * 3 + wall_between_modules_thickness * 4;
-back_plate_width = (size + module_hole_tolerance) * 2 + wall_between_modules_thickness * 3;
-
 module back_plate() {
     connector_tolerance = 0.15;
     connector_width = 4.05;
@@ -127,43 +109,37 @@ module horizontal_wall(tolerance = wall_between_modules_tolerance) {
 }
 
 module outside_wall() {
-    outer_wall_thickness = 4;
-
-    height_below_back_plate = 10;
-    height_above_inner_wall = 5;
-
-    outer_wall_corner_radius_side = 10;
-    outer_wall_corner_radius_top = 1.5;
-
-    outer_wall_length = back_plate_length + 2 * outer_wall_thickness;
-    outer_wall_width = back_plate_width + 2 * outer_wall_thickness;
-    outer_wall_height = height_below_back_plate + back_plate_thickness + height_above_inner_wall + vertical_wall_height;
-
-    outer_wall_screw_hole_distance_bottom = 27.5;
-    outer_wall_screw_hole_distance = 13.5;
-    outer_wall_screw_hole_distance_corner = 40;
-
-    difference() {
-        union() {
-            translate([0, 0, outer_wall_height / 2 - back_plate_thickness - height_below_back_plate]) minkowski() {
-                difference() {
-                    minkowski() {
-                        cube([outer_wall_length - 2 * outer_wall_corner_radius_side - 2 * outer_wall_corner_radius_top, outer_wall_width - 2 * outer_wall_corner_radius_side - 2 * outer_wall_corner_radius_top, outer_wall_height - 2 * outer_wall_corner_radius_top], center = true);
-                        cylinder(0.0001, outer_wall_corner_radius_side, outer_wall_corner_radius_side);
-                    }
-                    minkowski() {
-                        cube([outer_wall_length - 2 * outer_wall_corner_radius_side - 2 * outer_wall_thickness + 2 * outer_wall_corner_radius_top, outer_wall_width - 2 * outer_wall_corner_radius_side - 2 * outer_wall_thickness + 2 * outer_wall_corner_radius_top, outer_wall_height], center = true);
-                        cylinder(0.0001, outer_wall_corner_radius_side, outer_wall_corner_radius_side);
-                    }
+    union() {
+        translate([0, 0, outer_wall_height / 2 - back_plate_thickness - height_below_back_plate]) minkowski() {
+            difference() {
+                minkowski() {
+                    cube([outer_wall_length - 2 * outer_wall_corner_radius_side - 2 * outer_wall_corner_radius_top, outer_wall_width - 2 * outer_wall_corner_radius_side - 2 * outer_wall_corner_radius_top, outer_wall_height - 2 * outer_wall_corner_radius_top], center = true);
+                    cylinder(0.0001, outer_wall_corner_radius_side, outer_wall_corner_radius_side);
                 }
-                sphere(outer_wall_corner_radius_top);
+                minkowski() {
+                    cube([outer_wall_length - 2 * outer_wall_corner_radius_side - 2 * outer_wall_thickness + 2 * outer_wall_corner_radius_top, outer_wall_width - 2 * outer_wall_corner_radius_side - 2 * outer_wall_thickness + 2 * outer_wall_corner_radius_top, outer_wall_height], center = true);
+                    cylinder(0.0001, outer_wall_corner_radius_side, outer_wall_corner_radius_side);
+                }
             }
-            for (i = [-1:2:1]) {
-                translate([- back_plate_length / 2, - wall_between_modules_thickness / 2 - i * gap]) horizontal_wall(0);
-            }
-            translate([- back_plate_length / 2, -back_plate_width / 2]) vertical_wall(0);
+            sphere(outer_wall_corner_radius_top);
         }
-        translate([outer_wall_length, 0]) cube([2 * outer_wall_length, 2 * outer_wall_width, 2 * outer_wall_height], center = true);
+        for (i = [-1:2:1]) {
+            translate([- back_plate_length / 2, - wall_between_modules_thickness / 2 - i * gap]) {
+                difference() {
+                    horizontal_wall(0);
+                    translate([outer_wall_length + gap + wall_between_modules_thickness / 2 - outer_wall_connection_peg_depth, wall_between_modules_thickness / 2, horizontal_wall_height / 2]) cube([2 * outer_wall_length, outer_wall_connection_peg_size, outer_wall_connection_peg_height], center = true);
+                }
+            }
+        }
+        translate([- back_plate_length / 2, -back_plate_width / 2]) vertical_wall(0);
+    }
+}
+
+module outside_wall_corner() {
+    translate([outer_wall_length / 2 - outer_wall_thickness, outer_wall_width / 2 - outer_wall_thickness, 5])
+    difference() {
+        outside_wall();
+        translate([outer_wall_length - gap / 2, 0]) cube([2 * outer_wall_length, 2 * outer_wall_width, 2 * outer_wall_height], center = true);
         for (i = [-1:2:1]) {
             for (j = [-1:2:1]) {
                 translate([- outer_wall_length / 2 + outer_wall_screw_hole_distance_corner + outer_wall_screw_hole_distance / 2, i * outer_wall_width / 2, - height_below_back_plate - back_plate_thickness + outer_wall_screw_hole_distance_bottom]) rotate([i * 90, 0, 0]) screw_insert_hole();
@@ -178,7 +154,27 @@ module outside_wall() {
     }
 }
 
+module outside_wall_side() {
+    corner_radius = 1;
+    tolerance = 0.2;
+
+    union() {
+        translate([0, - outer_wall_width / 2 + outer_wall_thickness + wall_between_modules_thickness / 2]) intersection() {
+            outside_wall();
+            translate([0, outer_wall_width]) cube([gap, 2 * outer_wall_width, 2 * outer_wall_height], center = true);
+        }
+        translate([0, 0, horizontal_wall_height / 2]) cube([gap, outer_wall_connection_peg_size, outer_wall_connection_peg_height], center = true);
+        minkowski() {
+            translate([0, 0, horizontal_wall_height / 2]) cube([gap + outer_wall_connection_peg_depth * 2 - 2 * corner_radius - tolerance, outer_wall_connection_peg_size - 2 * corner_radius - tolerance, outer_wall_connection_peg_height - 2 * corner_radius - tolerance], center = true);
+            sphere(corner_radius);
+        }
+    }
+}
+
+$fn = $preview ? 10 : 50;
+
 back_plate();
 vertical_wall();
 horizontal_wall();
-outside_wall();
+outside_wall_corner();
+outside_wall_side();
