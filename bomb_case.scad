@@ -171,10 +171,66 @@ module outside_wall_side() {
     }
 }
 
+module outside_wall_side_with_connectors() {
+    tolerance = 0.2;
+
+    power_button_length = 19.4;
+    power_button_height = 6.6;
+    power_button_front_length = 20.78;
+    power_button_front_height = 9.4;
+    power_button_front_thickness = 2.06;
+
+    charger_length = 10.75;
+    charger_height = 8.85;
+
+    down_offset = -(power_button_height + tolerance) / 2 - back_plate_thickness - tolerance;
+    down_offset_charger = -(charger_height + tolerance) / 2 - back_plate_thickness - tolerance / 2;
+    difference() {
+        outside_wall_side();
+        translate([20, 0, down_offset]) union() {
+            cube([power_button_length + tolerance, 100, power_button_height + tolerance], center = true);
+            translate([0, wall_between_modules_thickness / 2 + outer_wall_thickness - (power_button_front_thickness + tolerance / 2) / 2]) cube([power_button_front_length + tolerance, power_button_front_thickness + tolerance / 2, power_button_front_height + tolerance], center = true);
+        }
+        translate([-20, 0, down_offset_charger]) cube([charger_length + tolerance, 100, charger_height + tolerance], center = true);
+    }
+}
+
+module outer_wall_joiner() {
+    thickness = 3;
+    corner_radius = 2;
+    length = 2 * (7.9 + outer_wall_screw_hole_distance_bottom);
+    width = 2 * 7.9 + outer_wall_screw_hole_distance;
+
+    module screw_hole() {
+        tolerance = 0.5;
+        translate([0, 0, -(screw_head_hole_radius - screw_body_hole_radius)]) union() {
+            cylinder(screw_head_hole_radius - screw_body_hole_radius, screw_body_hole_radius + tolerance / 2, screw_head_hole_radius);
+            translate([0, 0, -5]) cylinder(10, screw_body_hole_radius + tolerance / 2, screw_body_hole_radius + tolerance / 2, center = true);
+        }
+    }
+
+    difference() {
+        translate([0, 0, (thickness - corner_radius) / 2]) minkowski() {
+            cube([length - 2 * corner_radius, width - 2 * corner_radius, thickness - corner_radius], center = true);
+            difference() {
+                sphere(corner_radius);
+                translate([0, 0, - 2 * corner_radius]) cube([4 * corner_radius, 4 * corner_radius, 4 * corner_radius], center = true);
+            }
+        }
+        for (i = [-1:2:1]) {
+            for (j = [-1:2:1]) {
+                translate([i * outer_wall_screw_hole_distance_bottom, j * outer_wall_screw_hole_distance / 2, thickness]) screw_hole();
+            }
+        }
+    }
+}
+
 $fn = $preview ? 10 : 50;
 
-back_plate();
-vertical_wall();
-horizontal_wall();
-outside_wall_corner();
-outside_wall_side();
+*back_plate();
+*vertical_wall();
+*horizontal_wall();
+*outside_wall_corner();
+*outside_wall_side();
+*outside_wall_side_with_connectors();
+outer_wall_joiner();
